@@ -56,21 +56,49 @@ function Blocks({ count, divisor }: { count: number; divisor: number }) {
   const perRow = divisor;
   const rows = Math.ceil(count / perRow);
   return (
-    <div className="flex flex-col gap-1 items-center mb-3">
+    <div className="flex flex-col gap-1.5 items-center mb-3">
       {Array.from({ length: rows }).map((_, ri) => {
         const n = Math.min(perRow, count - ri * perRow);
         return (
-          <div key={ri} className="flex gap-1">
+          <div key={ri} className="flex gap-1.5">
             {Array.from({ length: n }).map((_, bi) => (
               <div
                 key={bi}
-                className="w-6 h-6 rounded-md"
+                className="w-7 h-7 rounded-md shadow-sm"
                 style={{ background: BLOCK_COLORS[ri % BLOCK_COLORS.length] }}
               />
             ))}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ---- 問題進行バー（ブロック形式） ----
+
+function ProgressBlocks({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-1 flex-wrap">
+        {Array.from({ length: total }).map((_, i) => (
+          <div
+            key={i}
+            className={[
+              "flex-1 min-w-0 h-3 rounded-sm transition-all duration-300",
+              i < current
+                ? "bg-indigo-500 shadow-sm"
+                : i === current
+                ? "bg-indigo-300 animate-pulse"
+                : "bg-gray-200",
+            ].join(" ")}
+            style={{ minWidth: 0, maxWidth: `${100 / total}%` }}
+          />
+        ))}
+      </div>
+      <p className="text-right text-xs font-black text-gray-500">
+        {current} / {total}
+      </p>
     </div>
   );
 }
@@ -88,7 +116,6 @@ type Phase = "question" | "correct" | "wrong";
 export default function GameScreen({ config, onFinish, onExit }: Props) {
   const { playClick, playCorrect, playWrong, playClear } = useSound();
 
-  // --- 問題リスト（初回のみ生成） ---
   const [questions] = useState<Question[]>(() =>
     config.kind === "practice"
       ? makePracticeQuestions(config.dan, config.mode)
@@ -97,16 +124,20 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
 
   const timeLimit = getTimeLimit(config);
 
-  // --- Render state ---
   const [idx,          setIdx]          = useState(0);
   const [phase,        setPhase]        = useState<Phase>("question");
   const [inputVal,     setInputVal]     = useState("");
   const [correctCount, setCorrectCount] = useState(0);
   const [mistakes,     setMistakes]     = useState<MistakeRecord[]>([]);
-  const [fireTrigger,  setFireTrigger]  = useState(0);
-  const [timeLeft,     setTimeLeft]     = useState(timeLimit);
+  const [fireTrigger,    setFireTrigger]    = useState(0);
+  const [timeLeft,       setTimeLeft]       = useState(timeLimit);
+  const [streakDisplay,   setStreakDisplay]   = useState(0);
+  const [streakMilestone, setStreakMilestone] = useState<{
+    n: number; level: 1 | 2 | 3; bonus: number;
+  } | null>(null);
+  // 正解〇エフェクト
+  const [showCircle, setShowCircle] = useState(false);
 
-  // --- Refs for stable callbacks (avoid stale closures) ---
   const phaseRef        = useRef<Phase>("question");
   const idxRef          = useRef(0);
   const correctRef      = useRef(0);
@@ -114,8 +145,9 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
   const questionsRef    = useRef(questions);
   const configRef       = useRef(config);
   const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const streakRef       = useRef(0);
+  const bonusCoinsRef   = useRef(0);
 
-  // sync refs with state
   phaseRef.current    = phase;
   idxRef.current      = idx;
   correctRef.current  = correctCount;
@@ -125,7 +157,6 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
   const isMushikui    = q?.displayType === "mushikui";
   const isAnswerFirst = q?.displayType === "answer-first";
 
-  // ---- Timer: reset each question ----
   useEffect(() => {
     setTimeLeft(timeLimit);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -136,17 +167,15 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
 
-  // ---- Finish game ----
   const finishGame = useCallback((correct: number, miss: MistakeRecord[]) => {
     if (timerRef.current) clearInterval(timerRef.current);
     const total = questionsRef.current.length;
     const stars  = calcStars(total, correct);
-    const coins  = calcCoins(configRef.current);
+    const coins  = calcCoins(configRef.current) + bonusCoinsRef.current;
     playClear();
     onFinish({ config: configRef.current, totalQuestions: total, correctCount: correct, mistakes: miss, stars, coinsEarned: coins });
   }, [playClear, onFinish]);
 
-  // ---- Advance to next question or finish ----
   const finishRef = useRef(finishGame);
   finishRef.current = finishGame;
 
@@ -165,7 +194,6 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
   const advanceRef = useRef(advance);
   advanceRef.current = advance;
 
-  // ---- Submit answer ----
   const submitAnswer = useCallback((rawAnswer: number) => {
     if (phaseRef.current !== "question") return;
     const q = questionsRef.current[idxRef.current];
@@ -182,6 +210,21 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
       setCorrectCount(newCorrect);
       setPhase("correct");
       setFireTrigger(t => t + 1);
+      setShowCircle(true);
+      setTimeout(() => setShowCircle(false), 700);
+
+      const newStreak = streakRef.current + 1;
+      streakRef.current = newStreak;
+      setStreakDisplay(newStreak);
+      let bonusCoins = 0;
+      let mLevel: 1 | 2 | 3 | null = null;
+      if (newStreak >= 10 && newStreak % 5 === 0) { bonusCoins = 5; mLevel = 3; }
+      else if (newStreak === 5)                    { bonusCoins = 2; mLevel = 2; }
+      else if (newStreak === 3)                    { bonusCoins = 1; mLevel = 1; }
+      if (mLevel !== null) {
+        bonusCoinsRef.current += bonusCoins;
+        setStreakMilestone({ n: newStreak, level: mLevel, bonus: bonusCoins });
+      }
       playCorrect();
       setTimeout(() => advanceRef.current(currentIdx + 1, newCorrect, mistakesRef.current), 700);
     } else {
@@ -190,6 +233,8 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
       phaseRef.current    = "wrong";
       setMistakes(newMistakes);
       setPhase("wrong");
+      streakRef.current = 0;
+      setStreakDisplay(0);
       playWrong();
       setTimeout(() => advanceRef.current(currentIdx + 1, correctRef.current, mistakesRef.current), 1500);
     }
@@ -198,14 +243,18 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
   const submitRef = useRef(submitAnswer);
   submitRef.current = submitAnswer;
 
-  // ---- Timer expiry → wrong ----
+  useEffect(() => {
+    if (!streakMilestone) return;
+    const t = setTimeout(() => setStreakMilestone(null), 2000);
+    return () => clearTimeout(t);
+  }, [streakMilestone]);
+
   useEffect(() => {
     if (timeLeft <= 0 && phaseRef.current === "question") {
       submitRef.current(-1);
     }
   }, [timeLeft]);
 
-  // ---- Keyboard input ----
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (phaseRef.current !== "question") return;
@@ -234,7 +283,6 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isMushikui, isAnswerFirst]);
 
-  // ---- NumPad handler ----
   function handleNumPad(v: string) {
     playClick();
     if (phaseRef.current !== "question") return;
@@ -260,7 +308,6 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
     }
   }
 
-  // ---- Timer bar color ----
   const timePct    = (timeLeft / timeLimit) * 100;
   const timerColor = timePct < 30
     ? "from-red-500 to-orange-400"
@@ -270,7 +317,6 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
 
   if (!q) return null;
 
-  // ---- Wrong answer label ----
   function wrongAnswerLabel(): string {
     if (q.displayType === "answer-first") {
       const c = q.choices?.[q.correctAnswer];
@@ -280,75 +326,89 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center px-4 py-4 pb-6">
+    <div className="game-bg flex flex-col items-center px-3 sm:px-4 py-4 pb-6">
       <Fireworks trigger={fireTrigger} />
+
+      {/* 正解〇エフェクト */}
+      {showCircle && (
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-40">
+          <div
+            className="w-40 h-40 rounded-full border-8 border-green-400 animate-circle-correct"
+            style={{ opacity: 1 }}
+          />
+        </div>
+      )}
 
       <div className="w-full max-w-md flex flex-col gap-3">
         {/* Header */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => { playClick(); onExit(); }}
-            className="bg-gray-200 hover:bg-gray-300 w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0"
+            className="
+              bg-white hover:bg-gray-100 active:bg-gray-200
+              w-11 h-11 rounded-full flex items-center justify-center
+              font-black text-lg flex-shrink-0 shadow-md border-2 border-gray-200
+              transition-colors
+            "
           >
             ✕
           </button>
-          <span className="text-sm font-bold text-gray-600 flex-1 truncate">{getTitle(config)}</span>
-          <span className="text-sm font-bold text-gray-500 flex-shrink-0">{idx + 1}/{questions.length}</span>
+          <span className="text-xs sm:text-sm font-bold text-gray-600 flex-1 truncate">{getTitle(config)}</span>
+
+          {/* 連続正解バッジ */}
+          {streakDisplay >= 3 && (
+            <span className={[
+              "flex-shrink-0 font-black text-sm px-2.5 py-1 rounded-full shadow-sm",
+              streakDisplay >= 10
+                ? "bg-orange-500 text-white animate-streak"
+                : streakDisplay >= 5
+                ? "bg-yellow-400 text-yellow-900"
+                : "bg-red-100 text-red-600",
+            ].join(" ")}>
+              🔥 {streakDisplay}
+            </span>
+          )}
         </div>
 
-        {/* Timer bar */}
+        {/* タイマーバー */}
         <div>
-          <div className="bg-gray-200 rounded-full h-4 overflow-hidden">
+          <div className="bg-gray-200 rounded-full h-5 overflow-hidden shadow-inner">
             <div
-              className={`h-full rounded-full bg-gradient-to-r ${timerColor} transition-all duration-150`}
+              className={`h-full rounded-full bg-gradient-to-r ${timerColor} transition-all duration-150 shadow-sm`}
               style={{ width: `${timePct}%` }}
             />
           </div>
-          <p className="text-right text-xs text-gray-500 font-bold mt-0.5">
+          <p className={[
+            "text-right text-xs font-black mt-0.5",
+            timePct < 30 ? "text-red-500 animate-blink" : "text-gray-500",
+          ].join(" ")}>
             のこり {Math.ceil(timeLeft)} びょう
           </p>
         </div>
 
-        {/* Progress dots */}
-        <div className="flex gap-1.5 flex-wrap justify-center">
-          {questions.map((_, i) => {
-            const hasMistake = mistakes.some(m => m.question === questions[i]);
-            return (
-              <div
-                key={i}
-                className={[
-                  "w-3 h-3 rounded-full transition-all duration-300",
-                  i < idx
-                    ? hasMistake ? "bg-red-400" : "bg-green-400"
-                    : i === idx
-                    ? "bg-blue-400 scale-125"
-                    : "bg-gray-200",
-                ].join(" ")}
-              />
-            );
-          })}
-        </div>
+        {/* 問題進行バー（ブロック形式） */}
+        <ProgressBlocks current={idx} total={questions.length} />
 
-        {/* Question card */}
+        {/* 問題カード */}
         <div className={[
-          "bg-white rounded-3xl shadow-lg p-6 text-center border-t-4",
-          phase === "correct" ? "border-green-400"
-            : phase === "wrong" ? "border-red-400"
+          "bg-white rounded-3xl shadow-lg p-5 sm:p-6 text-center border-t-4 transition-all duration-200",
+          phase === "correct" ? "border-green-400 bg-green-50/30"
+            : phase === "wrong" ? "border-red-400 bg-red-50/30"
             : "border-indigo-400",
         ].join(" ")}>
 
-          {/* Block visual */}
+          {/* ブロック表示 */}
           {q.displayType === "block" && <Blocks count={q.dividend} divisor={q.divisor} />}
 
-          {/* Question text */}
+          {/* 問題テキスト */}
           {q.displayType === "answer-first" ? (
             <div>
               <p className="text-sm text-gray-500 font-bold mb-2">こたえは</p>
-              <div className="text-7xl font-black text-indigo-600 mb-3">{q.displayAnswer}</div>
+              <div className="text-7xl sm:text-8xl font-black text-indigo-600 mb-3">{q.displayAnswer}</div>
               <p className="text-sm text-gray-500 font-bold">しきは　どれ？</p>
             </div>
           ) : q.displayType === "mushikui" ? (
-            <div className="text-4xl font-black text-gray-800 tracking-widest">
+            <div className="text-4xl sm:text-5xl font-black text-gray-800 tracking-widest">
               <span className={[
                 "inline-block px-3 py-0.5 rounded-xl border-4",
                 phase === "correct"
@@ -375,7 +435,7 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
               <span className="text-red-500">{q.divisor}</span>
               <span className="text-gray-400 mx-2">=</span>
               {phase === "correct" ? (
-                <span className="text-green-500">{q.correctAnswer}</span>
+                <span className="text-green-500 animate-correct">{q.correctAnswer}</span>
               ) : phase === "wrong" ? (
                 <span className="text-red-500">{q.correctAnswer}</span>
               ) : (
@@ -386,22 +446,46 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
             </div>
           )}
 
-          {/* Feedback */}
+          {/* フィードバック */}
           <div className={[
-            "mt-4 text-lg font-black min-h-7",
+            "mt-4 text-xl font-black min-h-8 transition-all",
             phase === "correct" ? "text-green-600 animate-correct"
               : phase === "wrong" ? "text-red-500 animate-shake"
               : "text-transparent",
           ].join(" ")}>
             {phase === "correct"
-              ? "🎉 せいかい！"
+              ? "⭕ せいかい！"
               : phase === "wrong"
-              ? `😢 こたえは ${wrongAnswerLabel()} だよ`
+              ? `❌ こたえは ${wrongAnswerLabel()} だよ`
               : "."}
           </div>
         </div>
 
-        {/* Input area */}
+        {/* COMBOミルストーンポップアップ */}
+        {streakMilestone && (
+          <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+            <div className={[
+              "flex flex-col items-center gap-1.5 px-10 py-6 rounded-3xl shadow-2xl border-4 animate-combo-popup",
+              streakMilestone.level === 3
+                ? "bg-orange-500 border-orange-300 text-white"
+                : streakMilestone.level === 2
+                ? "bg-yellow-400 border-yellow-200 text-yellow-900"
+                : "bg-green-500 border-green-300 text-white",
+            ].join(" ")}>
+              <span className="text-5xl">
+                {streakMilestone.level === 3 ? "🔥🔥🔥" : streakMilestone.level === 2 ? "🔥🔥" : "🔥"}
+              </span>
+              <span className="text-3xl font-black tracking-wide">
+                {streakMilestone.n} COMBO!!
+              </span>
+              <span className="text-base font-bold opacity-90">
+                🪙 ＋{streakMilestone.bonus} コインボーナス！
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 入力エリア */}
         {isAnswerFirst ? (
           <div className="grid grid-cols-2 gap-3">
             {q.choices?.map((choice, ci) => {
@@ -412,7 +496,7 @@ export default function GameScreen({ config, onFinish, onExit }: Props) {
                   disabled={phase !== "question"}
                   onClick={() => { playClick(); submitAnswer(ci); }}
                   className={[
-                    "py-5 rounded-2xl font-black text-xl",
+                    "py-5 rounded-2xl font-black text-lg sm:text-xl",
                     "shadow-[0_4px_0_rgba(0,0,0,0.15)]",
                     "active:translate-y-1 active:shadow-none transition-all duration-100",
                     phase === "question"

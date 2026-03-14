@@ -1,94 +1,153 @@
 "use client";
+import { useMemo } from "react";
 import { useSound } from "../hooks/useSound";
+import { getLevelProgress } from "../lib/level";
 
 interface Props {
   coins: number;
   diamonds: number;
+  level: number;
+  allClear: boolean;
   onPractice: () => void;
   onChallenge: () => void;
+  onSettings: () => void;
 }
 
-export default function TitleScreen({ coins, diamonds, onPractice, onChallenge }: Props) {
-  const { playClick } = useSound();
+// 星フィールド（宇宙背景用）
+function StarField() {
+  const stars = useMemo(() =>
+    Array.from({ length: 70 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 0.8 + Math.random() * 2,
+      dur: 1.5 + Math.random() * 3,
+      delay: Math.random() * 5,
+    })), []
+  );
 
   return (
-    <div className="min-h-screen diamond-bg flex flex-col items-center justify-between py-10 px-4">
-      {/* Title + buttons */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 w-full">
-        {/* Logo (SVG gradient + black outline) */}
-        <div className="animate-bob drop-shadow-2xl">
-          <svg
-            viewBox="0 0 580 130"
-            className="w-full max-w-[420px]"
-            overflow="visible"
-            aria-label="割り算マスター"
-          >
-            <defs>
-              <linearGradient id="tg" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#FFE566" />
-                <stop offset="100%" stopColor="#FF8800" />
-              </linearGradient>
-            </defs>
-            <text
-              x="50%" y="95"
-              textAnchor="middle"
-              fill="url(#tg)"
-              stroke="#000"
-              strokeWidth="8"
-              paintOrder="stroke fill"
-              fontSize="74"
-              fontWeight="900"
-              fontFamily="'Nunito','Hiragino Kaku Gothic ProN','Meiryo',sans-serif"
-              letterSpacing="4"
-            >
-              割り算マスター
-            </text>
-          </svg>
-        </div>
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {stars.map(s => (
+        <span
+          key={s.id}
+          className="absolute rounded-full bg-white animate-twinkle"
+          style={{
+            left: `${s.x}%`,
+            top: `${s.y}%`,
+            width: `${s.size}px`,
+            height: `${s.size}px`,
+            "--dur": `${s.dur}s`,
+            "--delay": `${s.delay}s`,
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
+}
 
-        {/* Subtitle */}
-        <p className="text-white font-black text-base sm:text-lg drop-shadow-lg tracking-widest">
-          ÷ わり算 れんしゅう ゲーム ÷
-        </p>
+export default function TitleScreen({ coins, diamonds, level, allClear, onPractice, onChallenge, onSettings }: Props) {
+  const { playClick } = useSound();
+  const lp = getLevelProgress(coins);
 
-        {/* Buttons */}
-        <div className="flex flex-col gap-4 w-full max-w-xs">
-          <button
-            onClick={() => { playClick(); onPractice(); }}
-            className="
-              bg-red-500 hover:bg-red-600 active:bg-red-700
-              text-white font-black text-2xl py-5 rounded-2xl
-              shadow-[0_6px_0_#991b1b]
-              active:shadow-[0_2px_0_#991b1b] active:translate-y-1
-              transition-all duration-100 select-none
-            "
-          >
-            🔢 割り算れんしゅう
-          </button>
-          <button
-            onClick={() => { playClick(); onChallenge(); }}
-            className="
-              bg-blue-500 hover:bg-blue-600 active:bg-blue-700
-              text-white font-black text-2xl py-5 rounded-2xl
-              shadow-[0_6px_0_#1e3a8a]
-              active:shadow-[0_2px_0_#1e3a8a] active:translate-y-1
-              transition-all duration-100 select-none
-            "
-          >
-            ⚡ 割り算チャレンジ
-          </button>
+  return (
+    <div className="title-screen space-bg relative overflow-hidden">
+      <StarField />
+
+      {/* 設定ボタン（右上固定） */}
+      <button
+        onClick={() => { playClick(); onSettings(); }}
+        className="
+          absolute top-4 right-4 z-20
+          w-12 h-12 sm:w-14 sm:h-14
+          bg-white/15 hover:bg-white/25 active:bg-white/35
+          backdrop-blur-sm border border-white/25
+          rounded-full flex items-center justify-center
+          text-2xl sm:text-3xl
+          transition-all duration-200 shadow-lg
+        "
+        aria-label="せってい"
+      >
+        ⚙️
+      </button>
+
+      {/* ① レベルバッジ */}
+      <div className="w-full max-w-xs relative z-10">
+        <div className="bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 shadow-lg flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="bg-yellow-400/90 text-yellow-900 font-black text-sm px-2.5 py-0.5 rounded-lg shadow-sm">
+                Lv.{lp.level}
+              </div>
+              <span className="text-sm font-bold text-white/90 drop-shadow">{lp.title}</span>
+            </div>
+            {!lp.isMax && (
+              <span className="text-xs text-white/50 font-bold">
+                {lp.progressCoins}/{lp.neededCoins}
+              </span>
+            )}
+          </div>
+          <div className="bg-white/15 rounded-full h-3.5 overflow-hidden shadow-inner">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 transition-all duration-700 animate-glow-pulse"
+              style={{ width: `${lp.pct}%` }}
+            />
+          </div>
+          {lp.isMax && (
+            <p className="text-xs text-center font-black text-yellow-300 drop-shadow">👑 MAX レベル達成！</p>
+          )}
         </div>
       </div>
 
-      {/* Coin / Diamond display */}
-      <div className="flex gap-4 mt-4">
-        <div className="bg-white/90 rounded-2xl px-5 py-3 flex items-center gap-2 shadow-lg">
-          <span className="text-2xl">🪙</span>
-          <span className="font-black text-xl text-amber-600">{coins}</span>
+      {/* ② タイトルロゴ */}
+      <div className="title-area relative z-10">
+        <img
+          src="/image/warizanmaster.png"
+          alt="割り算マスター"
+          className="title-logo"
+        />
+        {allClear && (
+          <div className="animate-badge-pulse bg-yellow-400 border-4 border-yellow-200 rounded-2xl px-6 py-1.5 shadow-2xl mt-2">
+            <p className="font-black text-base text-yellow-900 tracking-widest">⭐ ALL CLEAR ⭐</p>
+          </div>
+        )}
+      </div>
+
+      {/* ③ モード選択カード */}
+      <div className="mode-select relative z-10">
+        <button
+          className="mode-card practice"
+          onClick={() => { playClick(); onPractice(); }}
+        >
+          <div className="mode-icon">📘</div>
+          <div className="mode-title">割り算れんしゅう</div>
+          <div className="mode-desc">ゆっくり練習モード</div>
+        </button>
+        <button
+          className="mode-card challenge"
+          onClick={() => { playClick(); onChallenge(); }}
+        >
+          <div className="mode-icon">⚡</div>
+          <div className="mode-title">割り算チャレンジ</div>
+          <div className="mode-desc">スピードチャレンジ</div>
+        </button>
+      </div>
+
+      {/* ④ コイン + ダイヤ */}
+      <div className="currency-area relative z-10">
+        <div className="flex-1 bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg">
+          <span className="text-4xl animate-coin-spin leading-none">🪙</span>
+          <div>
+            <div className="font-black text-2xl text-yellow-300 leading-none">{coins.toLocaleString()}</div>
+            <div className="text-xs text-white/60 font-bold mt-0.5">コイン</div>
+          </div>
         </div>
-        <div className="bg-white/90 rounded-2xl px-5 py-3 flex items-center gap-2 shadow-lg">
-          <span className="text-2xl">💎</span>
-          <span className="font-black text-xl text-blue-600">{diamonds}</span>
+        <div className="flex-1 bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg">
+          <span className="text-4xl animate-diamond-sparkle leading-none">💎</span>
+          <div>
+            <div className="font-black text-2xl text-cyan-300 leading-none">{diamonds.toLocaleString()}</div>
+            <div className="text-xs text-white/60 font-bold mt-0.5">ダイヤ</div>
+          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,8 @@ const KEY = "warizan-master-v2";
 const DEFAULTS: SaveData = {
   coins: 0,
   diamonds: 0,
+  level: 1,
+  allClear: false,
   practiceStars: {},
   challengeStars: {},
   challengeUnlocked: {
@@ -26,6 +28,8 @@ export function loadSave(): SaveData {
     return {
       coins: p.coins ?? 0,
       diamonds: p.diamonds ?? 0,
+      level: p.level ?? 1,
+      allClear: p.allClear ?? false,
       practiceStars: p.practiceStars ?? {},
       challengeStars: p.challengeStars ?? {},
       challengeUnlocked: { ...DEFAULTS.challengeUnlocked, ...(p.challengeUnlocked ?? {}) },

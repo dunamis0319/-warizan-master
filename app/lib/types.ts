@@ -1,4 +1,4 @@
-export type AppScreen = "title" | "practiceSelect" | "challengeSelect" | "game" | "result";
+export type AppScreen = "title" | "practiceSelect" | "challengeSelect" | "game" | "result" | "ending" | "settings";
 export type PracticeMode = "nobori" | "kudari" | "barabara";
 export type ChallengeType =
   | "normal"
@@ -58,6 +58,8 @@ export interface GameResult {
 export interface SaveData {
   coins: number;
   diamonds: number;
+  level: number;                              // プレイヤーレベル（1-20）
+  allClear: boolean;                          // 全チャレンジクリア済み
   practiceStars: Record<string, number>;      // `${dan}_${mode}` → 0-3
   challengeStars: Record<string, number>;     // `${type}_${rank}` → 0-3
   challengeUnlocked: Record<string, boolean>; // `${type}_${rank}`

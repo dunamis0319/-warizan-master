@@ -1,6 +1,11 @@
 "use client";
 import { useRef } from "react";
 
+function isSoundEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem("warizan-sound") !== "false";
+}
+
 export function useSound() {
   const ctxRef = useRef<AudioContext | null>(null);
 
@@ -10,6 +15,7 @@ export function useSound() {
   }
 
   function tone(freq: number, type: OscillatorType, startAt: number, dur: number, vol = 0.3) {
+    if (!isSoundEnabled()) return;
     try {
       const c = ctx();
       const osc = c.createOscillator();

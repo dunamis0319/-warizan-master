@@ -13,11 +13,17 @@
 * {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
 body {
   font-family: 'Nunito', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-  overflow-x: hidden;
 }
 
 /* ========================================
@@ -84,11 +90,39 @@ body {
   60%  { transform: scale(1.3) rotate(10deg); }
   100% { transform: scale(1) rotate(0deg);   opacity: 1; }
 }
+/* エンディング: 下から上へ浮かぶコイン・星 */
+@keyframes ending-float {
+  0%   { transform: translateY(0)      rotate(0deg)   scale(1);   opacity: 0; }
+  8%   { opacity: 1; }
+  85%  { opacity: 0.8; }
+  100% { transform: translateY(-110vh) rotate(540deg) scale(0.4); opacity: 0; }
+}
+/* エンディング: ALL CLEAR バッジのパルス */
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0  8px #fbbf24; }
+  50%       { transform: scale(1.06); box-shadow: 0 0 24px #fbbf24, 0 0 48px #f97316; }
+}
+/* 連続正解マイルストーン ポップアップ */
+@keyframes streak-popup {
+  0%   { transform: scale(0.3) translateY(30px); opacity: 0; }
+  25%  { transform: scale(1.2) translateY(0);    opacity: 1; }
+  75%  { transform: scale(1)   translateY(0);    opacity: 1; }
+  100% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+}
+/* 進行バーの輝き */
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(99,102,241,0.4); }
+  50%       { box-shadow: 0 0 12px rgba(99,102,241,0.8), 0 0 24px rgba(168,85,247,0.4); }
+}
 
 /* ========================================
    Utility animation classes
    ======================================== */
-.animate-bob       { animation: bob 2s ease-in-out infinite; }
+.animate-bob           { animation: bob 2s ease-in-out infinite; }
+.animate-ending-float  { animation: ending-float var(--dur,4s) var(--delay,0s) linear infinite; }
+.animate-badge-pulse   { animation: badge-pulse 1.8s ease-in-out infinite; }
+.animate-streak-popup  { animation: streak-popup 1.6s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+.animate-progress-glow { animation: progress-glow 2s ease-in-out infinite; }
 .animate-pop       { animation: pop 0.3s ease forwards; }
 .animate-shake     { animation: shake 0.4s ease; }
 .animate-correct   { animation: correct-pulse 0.4s ease; }
@@ -97,3 +131,266 @@ body {
 .animate-blink     { animation: blink 1s step-end infinite; }
 .animate-spin-in   { animation: star-pop 0.5s ease forwards; }
 .animate-streak    { animation: streak-glow 1s ease-in-out infinite; }
+
+/* ========================================
+   追加アニメーション（ポップUI用）
+   ======================================== */
+
+/* 宇宙背景 */
+.space-bg {
+  background: linear-gradient(160deg, #0d0821 0%, #1a1050 40%, #0f1a4a 70%, #080d25 100%);
+}
+
+/* ゲーム画面背景 */
+.game-bg {
+  background: linear-gradient(180deg, #eff6ff 0%, #e0e7ff 100%);
+  min-height: 100vh;
+}
+
+/* コイン回転 */
+@keyframes coin-spin {
+  0%   { transform: rotateY(0deg); }
+  40%  { transform: rotateY(80deg) scaleX(0.4); }
+  60%  { transform: rotateY(100deg) scaleX(0.4); }
+  100% { transform: rotateY(360deg); }
+}
+
+/* ダイヤキラキラ */
+@keyframes diamond-sparkle {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 2px #93c5fd); }
+  33%  { filter: brightness(1.6) drop-shadow(0 0 10px #60a5fa) drop-shadow(0 0 20px #3b82f6); }
+  66%  { filter: brightness(0.85) drop-shadow(0 0 3px #93c5fd); }
+}
+
+/* レベルアップ演出 */
+@keyframes level-up-popup {
+  0%   { transform: scale(0.3) translateY(30px); opacity: 0; }
+  20%  { transform: scale(1.3) translateY(-8px); opacity: 1; }
+  50%  { transform: scale(1) translateY(0); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: scale(1) translateY(-40px); opacity: 0; }
+}
+
+/* バウンス登場 */
+@keyframes bounce-in {
+  0%   { transform: scale(0); opacity: 0; }
+  50%  { transform: scale(1.2); }
+  75%  { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* COMBOポップアップ */
+@keyframes combo-popup {
+  0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  20%  { transform: scale(1.25) rotate(4deg); opacity: 1; }
+  45%  { transform: scale(1) rotate(0deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: scale(0.9) translateY(-20px); opacity: 0; }
+}
+
+/* 星のまたたき */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.12; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+/* 正解〇エフェクト */
+@keyframes circle-correct {
+  0%   { transform: scale(0.2); opacity: 1; border-width: 8px; }
+  60%  { transform: scale(1.3); opacity: 0.7; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* ゴールドグロー */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(251, 191, 36, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.9), 0 0 40px rgba(245, 158, 11, 0.6); }
+}
+
+/* ホバー時に輝く */
+@keyframes btn-glow {
+  0%, 100% { box-shadow: 0 7px 0 var(--btn-shadow, #333); }
+  50% { box-shadow: 0 7px 0 var(--btn-shadow, #333), 0 0 16px rgba(255,255,255,0.4); }
+}
+
+.animate-coin-spin       { animation: coin-spin 3s ease-in-out infinite; }
+.animate-diamond-sparkle { animation: diamond-sparkle 2s ease-in-out infinite; }
+.animate-level-up        { animation: level-up-popup 2.4s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+.animate-bounce-in       { animation: bounce-in 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+.animate-combo-popup     { animation: combo-popup 2s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+.animate-twinkle         { animation: twinkle var(--dur,2s) var(--delay,0s) ease-in-out infinite; }
+.animate-circle-correct  { animation: circle-correct 0.7s ease-out forwards; }
+.animate-glow-pulse      { animation: glow-pulse 1.6s ease-in-out infinite; }
+
+/* ========================================
+   星空グリッドアニメーション（タイトル背景）
+   ======================================== */
+@keyframes starMove {
+  from { background-position: 0 0; }
+  to   { background-position: 1000px 600px; }
+}
+
+.space-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(white 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.25;
+  animation: starMove 80s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========================================
+   コイン獲得アニメーション
+   ======================================== */
+@keyframes coinPop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.coin-pop { animation: coinPop 0.6s ease; }
+
+/* ========================================
+   けいフォント
+   ======================================== */
+@font-face {
+  font-family: "Keifont";
+  src: url("/fonts/keifont.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* ========================================
+   タイトル画面レイアウト
+   ======================================== */
+@keyframes titleFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+/* 全要素を縦中央に並べる。gap が余白を統一管理 */
+.title-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+/* タイトル＋バージョンをまとめる箱 */
+.title-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-logo {
+  width: clamp(280px, 52vw, 560px);
+  display: block;
+  filter: drop-shadow(0 12px 28px rgba(0,0,0,0.6));
+  animation: titleFloat 4s ease-in-out infinite;
+}
+
+.version-text {
+  font-size: 14px;
+  opacity: 0.6;
+  color: white;
+}
+
+/* コイン・ダイヤエリア */
+.currency-area {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 460px;
+}
+
+/* ========================================
+   モードカード
+   ======================================== */
+.mode-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 760px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .title-screen {
+    gap: 10px;
+  }
+  .title-logo {
+    width: clamp(240px, 82vw, 400px);
+  }
+  .mode-select {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.mode-card {
+  padding: 22px 24px;
+  border-radius: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  color: white;
+  border: none;
+  outline: none;
+  font-family: "Keifont", sans-serif;
+  font-size: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.mode-card * {
+  color: white;
+}
+
+.mode-card:hover {
+  transform: translateY(-8px) scale(1.04);
+  box-shadow: 0 28px 56px rgba(0,0,0,0.45);
+}
+
+.mode-card:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.mode-card.practice {
+  background: linear-gradient(135deg, #ff5757, #ff2a2a);
+}
+
+.mode-card.challenge {
+  background: linear-gradient(135deg, #4f8cff, #2563eb);
+}
+
+.mode-icon {
+  font-size: 48px;
+  margin-bottom: 4px;
+  color: white;
+}
+
+.mode-title {
+  font-family: "Keifont", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: white;
+}
+
+.mode-desc {
+  font-family: "Keifont", sans-serif;
+  font-size: 15px;
+  color: rgba(255,255,255,0.9);
+  margin-top: 6px;
+}
