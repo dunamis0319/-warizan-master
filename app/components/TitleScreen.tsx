@@ -51,8 +51,9 @@ export default function TitleScreen({ coins, diamonds, level, allClear, onPracti
   const lp = getLevelProgress(coins);
 
   return (
-    <div className="title-screen space-bg relative overflow-hidden">
+    <div className="title-wrapper space-bg relative overflow-hidden">
       <StarField />
+      <div className="main-ui relative z-10">
 
       {/* 設定ボタン（右上固定） */}
       <button
@@ -72,7 +73,7 @@ export default function TitleScreen({ coins, diamonds, level, allClear, onPracti
       </button>
 
       {/* ① レベルバッジ */}
-      <div className="w-full max-w-xs relative z-10">
+      <div className="w-full max-w-sm relative z-10">
         <div className="bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 shadow-lg flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -107,14 +108,14 @@ export default function TitleScreen({ coins, diamonds, level, allClear, onPracti
           className="title-logo"
         />
         {allClear && (
-          <div className="animate-badge-pulse bg-yellow-400 border-4 border-yellow-200 rounded-2xl px-6 py-1.5 shadow-2xl mt-2">
+          <div className="animate-badge-pulse bg-yellow-400 border-4 border-yellow-200 rounded-2xl px-6 py-1.5 shadow-2xl">
             <p className="font-black text-base text-yellow-900 tracking-widest">⭐ ALL CLEAR ⭐</p>
           </div>
         )}
       </div>
 
       {/* ③ モード選択カード */}
-      <div className="mode-select relative z-10">
+      <div className="mode-container relative z-10">
         <button
           className="mode-card practice"
           onClick={() => { playClick(); onPractice(); }}
@@ -134,22 +135,24 @@ export default function TitleScreen({ coins, diamonds, level, allClear, onPracti
       </div>
 
       {/* ④ コイン + ダイヤ */}
-      <div className="currency-area relative z-10">
-        <div className="flex-1 bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg">
+      <div className="currency-container">
+        <div className="bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg">
           <span className="text-4xl animate-coin-spin leading-none">🪙</span>
           <div>
             <div className="font-black text-2xl text-yellow-300 leading-none">{coins.toLocaleString()}</div>
-            <div className="text-xs text-white/60 font-bold mt-0.5">コイン</div>
+            <div className="text-xs text-white/60 font-bold">コイン</div>
           </div>
         </div>
-        <div className="flex-1 bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg">
+        <div className="bg-white/12 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg">
           <span className="text-4xl animate-diamond-sparkle leading-none">💎</span>
           <div>
             <div className="font-black text-2xl text-cyan-300 leading-none">{diamonds.toLocaleString()}</div>
-            <div className="text-xs text-white/60 font-bold mt-0.5">ダイヤ</div>
+            <div className="text-xs text-white/60 font-bold">ダイヤ</div>
           </div>
         </div>
       </div>
+
+      </div>{/* /main-ui */}
     </div>
   );
 }

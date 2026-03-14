@@ -16,13 +16,14 @@
   box-sizing: border-box;
 }
 
-html, body {
+html {
   height: 100%;
-  margin: 0;
-  overflow: hidden;
 }
 
 body {
+  margin: 0;
+  width: 100%;
+  min-height: 100vh;
   font-family: 'Nunito', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
 }
 
@@ -271,74 +272,54 @@ body {
   50%       { transform: translateY(-10px); }
 }
 
-/* 全要素を縦中央に並べる。gap が余白を統一管理 */
-.title-screen {
-  height: 100vh;
+/* 全画面ラッパー */
+.title-wrapper {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* コンテンツ本体：縦方向も画面いっぱいに均等配置 */
+.main-ui {
+  width: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 20px;
+  justify-content: space-evenly;
+  padding: 2vh 4vw;
 }
 
-/* タイトル＋バージョンをまとめる箱 */
+/* タイトルロゴ */
 .title-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
 }
 
 .title-logo {
-  width: clamp(280px, 52vw, 560px);
+  width: clamp(280px, 62vw, 900px);
   display: block;
   filter: drop-shadow(0 12px 28px rgba(0,0,0,0.6));
   animation: titleFloat 4s ease-in-out infinite;
 }
 
-.version-text {
-  font-size: 14px;
-  opacity: 0.6;
-  color: white;
-}
-
-/* コイン・ダイヤエリア */
-.currency-area {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-  max-width: 460px;
-}
-
 /* ========================================
    モードカード
    ======================================== */
-.mode-select {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  max-width: 760px;
-  width: 100%;
-}
-
-@media (max-width: 640px) {
-  .title-screen {
-    gap: 10px;
-  }
-  .title-logo {
-    width: clamp(240px, 82vw, 400px);
-  }
-  .mode-select {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+.mode-container {
+  display: flex;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 48px);
+  flex-wrap: wrap;
 }
 
 .mode-card {
-  padding: 22px 24px;
-  border-radius: 24px;
+  width: clamp(220px, 22vw, 380px);
+  height: clamp(150px, 16vh, 260px);
+  border-radius: clamp(16px, 1.5vw, 28px);
   text-align: center;
   cursor: pointer;
   transition: transform 0.25s, box-shadow 0.25s;
@@ -347,7 +328,6 @@ body {
   border: none;
   outline: none;
   font-family: "Keifont", sans-serif;
-  font-size: 22px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -376,21 +356,54 @@ body {
 }
 
 .mode-icon {
-  font-size: 48px;
-  margin-bottom: 4px;
+  font-size: clamp(36px, 4vw, 64px);
   color: white;
 }
 
 .mode-title {
   font-family: "Keifont", sans-serif;
-  font-size: 26px;
+  font-size: clamp(18px, 2vw, 32px);
   font-weight: 700;
   color: white;
 }
 
 .mode-desc {
   font-family: "Keifont", sans-serif;
-  font-size: 15px;
+  font-size: clamp(12px, 1.2vw, 18px);
   color: rgba(255,255,255,0.9);
-  margin-top: 6px;
+}
+
+/* コイン・ダイヤ */
+.currency-container {
+  display: flex;
+  gap: clamp(12px, 2vw, 32px);
+}
+
+/* ========================================
+   スマホ対応
+   ======================================== */
+@media (max-width: 600px) {
+  .main-ui {
+    padding: 3vh 5vw;
+  }
+  .title-logo {
+    width: 88vw;
+  }
+  .mode-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .mode-card {
+    width: 88vw;
+    height: clamp(120px, 22vw, 160px);
+  }
+  .mode-icon {
+    font-size: 36px;
+  }
+  .mode-title {
+    font-size: 22px;
+  }
+  .mode-desc {
+    font-size: 13px;
+  }
 }
